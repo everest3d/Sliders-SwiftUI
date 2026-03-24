@@ -593,10 +593,9 @@ public struct TrackPad<LabelView: View>: View {
                             applyPreviousValueAffinity(proxy, velocity: drag.velocity)
                             isActive = true
                         }
-                        .onEnded { drag in
-                            constrainValue(proxy, drag.location)
-                            applyTickAffinity(proxy, velocity: drag.velocity)
-                            applyPreviousValueAffinity(proxy, velocity: drag.velocity)
+                        .onEnded { _ in
+                            // Keep last onChanged value — onEnded location can
+                            // jitter from finger lift.
                             isActive = false
                             isSnappedToPrevious = false
                             isSnappedToTick = false

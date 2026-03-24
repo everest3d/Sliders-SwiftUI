@@ -465,14 +465,9 @@ public struct LSlider<LabelView: View>: View {
                 fireTickHapticIfNeeded(newValue: newValue, transition: transition)
                 isActive = true
             })
-            .onEnded({ drag in
-                let (start, end) = calculateEndPoints(proxy)
-                let parameter = Double(calculateParameter(start, end, drag.location))
-                impactHandler(parameter == 1 || parameter == 0)
-                let rawValue = (range.upperBound - range.lowerBound) * parameter + range.lowerBound
-                let (newValue, transition) = applyAffinity(rawValue: rawValue)
-                value = newValue
-                fireTickHapticIfNeeded(newValue: newValue, transition: transition)
+            .onEnded({ _ in
+                // Keep the last onChanged value — drag.location in onEnded
+                // can jitter from finger lift, shifting the final value.
                 isActive = false
                 lastHapticTickValue = nil
             })
