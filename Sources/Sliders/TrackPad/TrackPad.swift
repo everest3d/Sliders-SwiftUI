@@ -570,53 +570,10 @@ public struct TrackPad<LabelView: View>: View {
                             .offset(previousValueOffset(proxy))
                     }
                     
-                    // Track tap gesture
-                    if allowsSingleTapSelect {
-                        Rectangle()
-                            .fill(Color.clear)
-                            .contentShape(Rectangle())
-                            .gesture(
-                                SpatialTapGesture(coordinateSpace: .named(space))
-                                    .onEnded { tap in
-                                        constrainValue(proxy, tap.location)
-                                        isActive = false
-                                        isSnappedToPrevious = false
-                                        isSnappedToTick = false
-                                        snappedTickPct = nil
-                                        if showPreviousValue {
-                                            previousValue = value
-                                        }
-                                    }
-                            )
-                    }
-
                     // Thumb
                     style.makeThumb(configuration: makeConfiguration())
                         .offset(thumbOffset(proxy))
-                        .gesture(
-                            DragGesture(minimumDistance: 0, coordinateSpace: .named(space))
-                                .onChanged { drag in
-                                    constrainValue(proxy, drag.location)
-                                    applyTickAffinity(proxy, velocity: drag.velocity)
-                                    applyPreviousValueAffinity(proxy, velocity: drag.velocity)
-                                    isActive = true
-                                }
-                                .onEnded { drag in
-                                    constrainValue(proxy, drag.location)
-                                    // Apply affinity one final time before committing
-                                    applyTickAffinity(proxy, velocity: drag.velocity)
-                                    applyPreviousValueAffinity(proxy, velocity: drag.velocity)
-                                    isActive = false
-                                    isSnappedToPrevious = false
-                                    isSnappedToTick = false
-                                    snappedTickPct = nil
-                                    // Record the committed position as the new previous value
-                                    if showPreviousValue {
-                                        previousValue = value
-                                    }
-                                }
-                        )
-                        .allowsHitTesting(isEnabled)
+                        .allowsHitTesting(false)
 
                     // Label (floating above the thumb)
                     if labelsVisibility != .hidden {
@@ -627,6 +584,29 @@ public struct TrackPad<LabelView: View>: View {
                     }
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0, coordinateSpace: .named(space))
+                        .onChanged { drag in
+                            constrainValue(proxy, drag.location)
+                            applyTickAffinity(proxy, velocity: drag.velocity)
+                            applyPreviousValueAffinity(proxy, velocity: drag.velocity)
+                            isActive = true
+                        }
+                        .onEnded { drag in
+                            constrainValue(proxy, drag.location)
+                            applyTickAffinity(proxy, velocity: drag.velocity)
+                            applyPreviousValueAffinity(proxy, velocity: drag.velocity)
+                            isActive = false
+                            isSnappedToPrevious = false
+                            isSnappedToTick = false
+                            snappedTickPct = nil
+                            if showPreviousValue {
+                                previousValue = value
+                            }
+                        }
+                )
+                .allowsHitTesting(isEnabled)
             }
         }
         .coordinateSpace(name: space)
