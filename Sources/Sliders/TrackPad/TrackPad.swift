@@ -607,7 +607,7 @@ public struct TrackPad<LabelView: View>: View {
                                 let outsideX = max(0, max(-drag.location.x, drag.location.x - w))
                                 let outsideY = max(0, max(-drag.location.y, drag.location.y - h))
                                 let outsideDistance = max(outsideX, outsideY)
-                                let fineScale = max(0.01, 1.0 / (1.0 + outsideDistance * 4.0 / min(w, h)))
+                                let fineScale = max(0.1, 1.0 / (1.0 + outsideDistance / min(w, h)))
 
                                 let dxNorm = (drag.location.x - dragStartLocation!.x) / w * fineScale
                                 let dyNorm = (drag.location.y - dragStartLocation!.y) / h * fineScale
