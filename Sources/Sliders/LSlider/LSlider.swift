@@ -60,6 +60,10 @@ public struct LSlider<LabelView: View>: View {
     @State private var lastHapticTickValue: Double? = nil
     /// The tick value the thumb is currently snapped to (nil = free).
     @State private var snappedTickValue: Double? = nil
+    /// Tracks the drag start location for fine-control mode.
+    @State private var dragStartLocation: CGPoint? = nil
+    /// Value when the drag began (after initial tap-to-position).
+    @State private var dragStartValue: Double? = nil
     private let space: String = "Slider"
 
     // MARK: Input
@@ -457,19 +461,46 @@ public struct LSlider<LabelView: View>: View {
         DragGesture(minimumDistance: 0, coordinateSpace: .named(space))
             .onChanged({ drag in
                 let (start, end) = calculateEndPoints(proxy)
-                let parameter = Double(calculateParameter(start, end, drag.location))
-                impactHandler(parameter == 1 || parameter == 0)
-                let rawValue = (range.upperBound - range.lowerBound) * parameter + range.lowerBound
-                let (newValue, transition) = applyAffinity(rawValue: rawValue)
-                value = newValue
-                fireTickHapticIfNeeded(newValue: newValue, transition: transition)
+
+                if dragStartLocation == nil {
+                    // First touch — jump to tap position (absolute mapping)
+                    let parameter = Double(calculateParameter(start, end, drag.location))
+                    impactHandler(parameter == 1 || parameter == 0)
+                    let rawValue = (range.upperBound - range.lowerBound) * parameter + range.lowerBound
+                    let (newValue, transition) = applyAffinity(rawValue: rawValue)
+                    value = newValue
+                    fireTickHapticIfNeeded(newValue: newValue, transition: transition)
+                    dragStartLocation = drag.location
+                    dragStartValue = newValue
+                } else {
+                    // Subsequent drags — delta-based with vertical fine control
+                    let trackHeight = proxy.size.height
+                    let verticalDistance = abs(drag.location.y - trackHeight / 2)
+                    // Scale: 1.0 when on the track, down to 0.05 when far away
+                    let fineScale = max(0.05, 1.0 / (1.0 + verticalDistance / trackHeight))
+
+                    let paramNow = Double(calculateParameter(start, end, drag.location))
+                    let paramStart = Double(calculateParameter(start, end, dragStartLocation!))
+                    let paramDelta = (paramNow - paramStart) * fineScale
+
+                    let rawValue = dragStartValue! + (range.upperBound - range.lowerBound) * paramDelta
+                    let clampedRaw = min(range.upperBound, max(range.lowerBound, rawValue))
+                    let (newValue, transition) = applyAffinity(rawValue: clampedRaw)
+                    impactHandler(newValue == range.lowerBound || newValue == range.upperBound)
+                    value = newValue
+                    fireTickHapticIfNeeded(newValue: newValue, transition: transition)
+
+                    // Update start for next frame so delta is incremental
+                    dragStartLocation = drag.location
+                    dragStartValue = newValue
+                }
                 isActive = true
             })
             .onEnded({ _ in
-                // Keep the last onChanged value — drag.location in onEnded
-                // can jitter from finger lift, shifting the final value.
                 isActive = false
                 lastHapticTickValue = nil
+                dragStartLocation = nil
+                dragStartValue = nil
             })
     }
 
