@@ -454,7 +454,7 @@ public struct LSlider<LabelView: View>: View {
     // MARK: - Gesture
 
     private func makeGesture(_ proxy: GeometryProxy) -> some Gesture {
-        DragGesture(minimumDistance: 5, coordinateSpace: .named(space))
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(space))
             .onChanged({ drag in
                 let (start, end) = calculateEndPoints(proxy)
                 let parameter = Double(calculateParameter(start, end, drag.location))
@@ -519,33 +519,10 @@ public struct LSlider<LabelView: View>: View {
                         .offset(tickMarkOffset(geo, tickValue: tickValue))
                 }
 
-                // Track tap gesture (rendered below thumb so thumb drag takes priority)
-                if allowsSingleTapSelect {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .contentShape(Rectangle())
-                        .gesture(
-                            SpatialTapGesture(coordinateSpace: .named(space))
-                                .onEnded { tap in
-                                    let (start, end) = calculateEndPoints(geo)
-                                    let parameter = Double(calculateParameter(start, end, tap.location))
-                                    impactHandler(parameter == 1 || parameter == 0)
-                                    let rawValue = (range.upperBound - range.lowerBound) * parameter + range.lowerBound
-                                    let (newValue, transition) = applyAffinity(rawValue: rawValue)
-                                    value = newValue
-                                    fireTickHapticIfNeeded(newValue: newValue, transition: transition)
-                                    isActive = false
-                                    lastHapticTickValue = nil
-                                }
-                        )
-                        .allowsHitTesting(isEnabled)
-                }
-
                 // Thumb
                 style.makeThumb(configuration: config)
                     .offset(thumbOffset(geo))
-                    .simultaneousGesture(makeGesture(geo))
-                    .allowsHitTesting(isEnabled)
+                    .allowsHitTesting(false)
 
                 // Label (floating above the thumb)
                 if labelsVisibility != .hidden {
@@ -555,6 +532,9 @@ public struct LSlider<LabelView: View>: View {
                         .allowsHitTesting(false)
                 }
             }
+            .contentShape(Rectangle())
+            .gesture(makeGesture(geo))
+            .allowsHitTesting(isEnabled)
             .coordinateSpace(name: space)
         }
     }
