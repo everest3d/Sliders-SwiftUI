@@ -81,9 +81,6 @@ public struct TrackPad<LabelView: View>: View {
     @Environment(\.labelsVisibility) private var labelsVisibility
     private let space: String = "Track Pad"
     @State private var isActive: Bool = false
-    /// Tracks drag start for fine-control mode.
-    @State private var dragStartLocation: CGPoint? = nil
-    @State private var dragStartValue: CGPoint? = nil
     @State private var atXLimit: Bool = false
     @State private var atYLimit: Bool = false
     /// The committed position from the last completed drag (set on `onEnded`).
@@ -591,38 +588,9 @@ public struct TrackPad<LabelView: View>: View {
                 .gesture(
                     DragGesture(minimumDistance: 0, coordinateSpace: .named(space))
                         .onChanged { drag in
-                            let w = proxy.size.width
-                            let h = proxy.size.height
-
-                            if dragStartLocation == nil {
-                                // First touch — jump to position
-                                constrainValue(proxy, drag.location)
-                                applyTickAffinity(proxy, velocity: drag.velocity)
-                                applyPreviousValueAffinity(proxy, velocity: drag.velocity)
-                                dragStartLocation = drag.location
-                                dragStartValue = value
-                            } else {
-                                // Delta-based with distance fine control
-                                // Distance outside the pad bounds triggers fine mode
-                                let outsideX = max(0, max(-drag.location.x, drag.location.x - w))
-                                let outsideY = max(0, max(-drag.location.y, drag.location.y - h))
-                                let outsideDistance = max(outsideX, outsideY)
-                                let fineScale = max(0.1, 1.0 / (1.0 + outsideDistance / min(w, h)))
-
-                                let dxNorm = (drag.location.x - dragStartLocation!.x) / w * fineScale
-                                let dyNorm = (drag.location.y - dragStartLocation!.y) / h * fineScale
-
-                                let rangeW = rangeX.upperBound - rangeX.lowerBound
-                                let rangeH = rangeY.upperBound - rangeY.lowerBound
-                                let newX = min(rangeX.upperBound, max(rangeX.lowerBound,
-                                    dragStartValue!.x + rangeW * dxNorm))
-                                let newY = min(rangeY.upperBound, max(rangeY.lowerBound,
-                                    dragStartValue!.y + rangeH * dyNorm))
-                                value = CGPoint(x: newX, y: newY)
-
-                                dragStartLocation = drag.location
-                                dragStartValue = value
-                            }
+                            constrainValue(proxy, drag.location)
+                            applyTickAffinity(proxy, velocity: drag.velocity)
+                            applyPreviousValueAffinity(proxy, velocity: drag.velocity)
                             isActive = true
                         }
                         .onEnded { _ in
@@ -630,8 +598,6 @@ public struct TrackPad<LabelView: View>: View {
                             isSnappedToPrevious = false
                             isSnappedToTick = false
                             snappedTickPct = nil
-                            dragStartLocation = nil
-                            dragStartValue = nil
                             if showPreviousValue {
                                 previousValue = value
                             }

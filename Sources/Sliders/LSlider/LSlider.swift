@@ -473,27 +473,23 @@ public struct LSlider<LabelView: View>: View {
                     dragStartLocation = drag.location
                     dragStartValue = newValue
                 } else {
-                    // Subsequent drags — delta-based with vertical fine control
+                    // Total delta from original start, scaled by vertical distance
                     let trackHeight = proxy.size.height
                     let deadZone = trackHeight * 2
                     let verticalDistance = max(0, abs(drag.location.y - trackHeight / 2) - deadZone)
-                    // Smooth scaling: at 1x height away → 0.5x, at 3x → 0.25x, at 7x → 0.1x
                     let fineScale = max(0.1, 1.0 / (1.0 + verticalDistance / trackHeight))
 
                     let paramNow = Double(calculateParameter(start, end, drag.location))
                     let paramStart = Double(calculateParameter(start, end, dragStartLocation!))
-                    let paramDelta = (paramNow - paramStart) * fineScale
+                    let totalDelta = (paramNow - paramStart) * fineScale
 
-                    let rawValue = dragStartValue! + (range.upperBound - range.lowerBound) * paramDelta
+                    let rawValue = dragStartValue! + (range.upperBound - range.lowerBound) * totalDelta
                     let clampedRaw = min(range.upperBound, max(range.lowerBound, rawValue))
                     let (newValue, transition) = applyAffinity(rawValue: clampedRaw)
                     impactHandler(newValue == range.lowerBound || newValue == range.upperBound)
                     value = newValue
                     fireTickHapticIfNeeded(newValue: newValue, transition: transition)
-
-                    // Update start for next frame so delta is incremental
-                    dragStartLocation = drag.location
-                    dragStartValue = newValue
+                    // dragStartLocation/Value stay fixed — total delta from origin
                 }
                 isActive = true
             })
