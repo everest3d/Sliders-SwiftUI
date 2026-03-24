@@ -475,9 +475,9 @@ public struct LSlider<LabelView: View>: View {
                 } else {
                     // Subsequent drags — delta-based with vertical fine control
                     let trackHeight = proxy.size.height
-                    let verticalDistance = abs(drag.location.y - trackHeight / 2)
-                    // Scale: 1.0 when on the track, down to 0.05 when far away
-                    let fineScale = max(0.05, 1.0 / (1.0 + verticalDistance / trackHeight))
+                    let verticalDistance = max(0, abs(drag.location.y - trackHeight / 2) - trackHeight / 2)
+                    // Aggressive scaling: at 0.5x track height away → 0.25x, at 1x → 0.1x, at 2x → 0.04x
+                    let fineScale = max(0.01, 1.0 / (1.0 + verticalDistance * 4.0 / trackHeight))
 
                     let paramNow = Double(calculateParameter(start, end, drag.location))
                     let paramStart = Double(calculateParameter(start, end, dragStartLocation!))
